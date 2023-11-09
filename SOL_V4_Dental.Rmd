@@ -206,7 +206,7 @@ Dental_London_line
 
 ```
 
-# Current geographical variation for % flu vaccine updake among over 65s during Winter 2022/3
+# Current geographical variation for % flu vaccine uptake among over 65s during Winter 2022/3
 
 
 ```{r fig_London_vacc_1, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
@@ -332,7 +332,7 @@ FluVacc_London_map3 <- ggplot(FluVacc_London_geog, aes(geometry=geometry, fill=V
   theme(legend.position = "right")+
   theme(plot.title = element_text(size = 16)) +
   scale_fill_manual(values = catgreen4) + 
-  labs(title = "% flu vaccine updake among over 65s during Winter 2022/3", 
+  labs(title = "% flu vaccine uptake among over 65s during Winter 2022/3", 
        subtitle = "",
        caption = paste0("Source: NHS, Chart: GLA demography"))
 FluVacc_London_map3
