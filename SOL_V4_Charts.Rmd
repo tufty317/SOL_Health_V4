@@ -1,0 +1,226 @@
+---
+title: "SOL health chapter charts, November 30th 2023"
+output: 
+  html_document:
+    css: Wil_style.css
+    theme: default
+    toc: TRUE
+    toc_float: TRUE
+    number_sections: TRUE
+always_allow_html: yes
+---
+
+```{r setup_1, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(gglaplot)
+library(ggplot2)
+library(data.table)
+library(lubridate)
+library(tidyr)
+library(png)
+library(stringr)
+library(tidyverse)
+library(plotly)
+library(sf)
+library(scales)
+library(htmlwidgets)
+library(ggplot2)
+library(gglaplot)
+library(ggrepel)
+
+
+devtools::load_all("Q:/Teams/D&PA/Demography/demogtools/")
+
+chart_dir <- 'Charts/'
+
+
+```
+
+
+
+```{r setup_2, include=FALSE}
+
+# Read in data on Healthy life expectancy for age group 65 years
+input_life_expectancy_sixties <- fread("2_HLE_at65_forV4.csv") %>% 
+  data.frame()
+
+# Read in SEN data, comparing London to England
+input_SEN_ethnicity_London_England <- fread("8_SEN_ethnicity_London_England_forV4.csv") %>% 
+  data.frame()
+
+# Read in Smoking prev rates
+input_Smoking_Housing <- fread("11_PHOF_Smoking_Housing_forV4.csv") %>% 
+  data.frame()
+
+# Read in flu vaccine data for London
+London_vaccination_rates <- read.csv("14_UKHSA_influenza_vaccine_uptake_forV4.csv") %>%   
+  data.frame
+
+# Read in low birth weight data for London
+London_LBW_rates <- read.csv("LBW_trends_for_London and England_forV4.csv") %>%   
+  data.frame
+
+```
+
+
+
+
+```{r fig_London_HLE, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+# HEALTHY LIFE EXPECTANCY AT AGE 65 
+
+# This wasn't used
+
+life_exp_facet_line_chart_sixties <- ggplot(data = input_life_expectancy_sixties, aes(x=Period, y=Healthy_Life_Expectancy, group = Area_name)) +
+  geom_line(aes(colour = Area_name), size = 1.5) +
+  scale_color_manual(values=colour_palette2) +
+  theme_gla(y_axis_title = TRUE) +   #free_y_facets
+  facet_wrap(~Sex) +
+  theme(axis.title.y = element_text(size = 15))+
+  theme(axis.text.x = element_text(angle = 45))+
+  guides(colour = guide_legend(reverse = TRUE)) +
+  labs(title = "Healthy Life Expectancy for those age 65y., by sex, 2009-11 to 2018–20",
+       caption = paste0("Source: ONS, Chart: GLA demography")) +
+  labs(y = "Years")
+life_exp_facet_line_chart_sixties
+
+
+demog_save_chart(life_exp_facet_line_chart_sixties, paste0(chart_dir, "life_exp_facet_line_chart_sixties"))
+
+
+```
+
+
+
+
+```{r fig_London_SEN, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+# School children with social, emotional and mental health needs  (HORIZONTAL BAR CHART)
+
+colour_palette2 <- gla_colour_palette()[c(6,3)]
+
+SEN_ethnicity_Lond_Eng_bar_chart <- input_SEN_ethnicity_London_England %>% 
+  mutate(EthOrder = fct_reorder(Eth_group, -Rank)) %>%
+  ggplot(aes(Percent, EthOrder, fill=Region, group=Region)) +
+  theme_gla(free_y_facets = TRUE) +
+  theme(plot.title = element_text(size=16))+
+  theme(axis.text.y = element_text(vjust = 0.05))+
+  geom_bar(stat="identity", color="black", position=position_dodge(), width = 0.7, alpha = 0.8)+
+  scale_x_continuous(labels = function(x) paste0(x,'%'))+
+  scale_fill_manual(values = colour_palette2) +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  labs(title = "Percentage of school pupils with social, emotional and mental health needs, by ethnicity (2022/23)",
+       subtitle = "",
+       caption = paste0("Source: Department of Education, Chart: GLA demography"))
+SEN_ethnicity_Lond_Eng_bar_chart
+
+demog_save_chart(SEN_ethnicity_Lond_Eng_bar_chart, paste0(chart_dir, "SEN_ethnicity_Lond_Eng_bar_chart"))
+
+```
+
+
+```{r fig_London_smoking, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+# SMOKING PREVALENCE RATES 
+
+colour_palette2 <- gla_colour_palette()[c(6,3)]
+
+Smoking_Housing_bar_chart <- input_Smoking_Housing %>% 
+  mutate(houseOrder = fct_reorder(Category, -Rank)) %>%
+  ggplot(aes(Value, houseOrder, fill=Area_Name, group=Area_Name)) +
+  # geom_errorbar(aes(xmin = LCI, xmax = UCI),
+  #               width = 0.2,
+  #               position = position_dodge(0.8),
+  #               size=1) +
+  theme_gla(free_y_facets = TRUE) +
+  theme(plot.title = element_text(size=16))+
+  theme(axis.text.y = element_text(vjust = 0.05))+
+  geom_bar(stat="identity", color="black", position=position_dodge(), width = 0.7, alpha = 0.8)+
+  scale_x_continuous(labels = function(x) paste0(x,'%'))+
+  scale_fill_manual(values = colour_palette2) +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  labs(title = "Smoking Prevalence in adults (18+) (current smokers) by housing tenure (2022)",
+       subtitle = "Prevalence of current smoking among persons 18 years and over",
+       caption = paste0("Source: ONS (Annual Population Survey), Chart: GLA demography"))
+Smoking_Housing_bar_chart
+
+demog_save_chart(Smoking_Housing_bar_chart, paste0(chart_dir, "Smoking_Housing_bar_chart"))
+
+```
+
+
+```{r fig_London_vacc, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+## Map of flu vaccine rates for Winter 2022/3 for over 65s in London
+
+my_quantpal4 <- rev(gla_pal(palette_type = "quantitative",
+                            n = 4,
+                            main_colour = "pink"))
+
+# Import LA boundaries for England and Wales
+borough_boundaries <- st_read("Borough_boundary_data/London_Borough_Excluding_MHW.shp")
+
+# Match boundary data with vaccination data and create categories for mapping
+FluVacc_London_geog <- London_vaccination_rates %>% 
+  left_join(borough_boundaries, by=c("Code"="GSS_CODE")) %>%
+   mutate(Vacc_Cat = cut(Uptake, breaks = c(58, 63, 69, 75, 80),
+                             right=FALSE,
+                             labels = c(" 58.0 - 62.9",
+                                        " 63.0 - 68.9",
+                                        " 69.0 - 74.9",
+                                        " 75.0 - 80.0"))) %>%
+  data.frame()
+
+FluVacc_London_map <- ggplot(FluVacc_London_geog, aes(geometry=geometry, fill=Vacc_Cat)) +
+  theme_gla()+
+  ggla_sf(color="white", size = 0.1)+
+  theme(legend.position = "right")+
+  theme(plot.title = element_text(size = 16)) +
+  scale_fill_manual(values = my_quantpal4) + 
+  labs(title = "% flu vaccine uptake among over 65s during Winter 2022/3", 
+       subtitle = "",
+       caption = paste0("Source: NHS, Chart: GLA demography"))
+FluVacc_London_map
+
+# ggsave (filename = (paste0(chart_dir, "FluVacc_London_map3.png")),
+#          plot = FluVacc_London_map3,
+#          device = "png",
+#          dpi=600,
+#          width = 9,
+#          height = 5.56,
+#          units = "in")
+
+demog_save_chart(FluVacc_London_map, paste0(chart_dir, "FluVacc_London_map"))
+
+
+```
+
+```{r fig_London_LBW, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+colour_palette2 <- gla_colour_palette()[c(6,3)]
+
+London_LBW_rates_lines <- ggplot(data = London_LBW_rates, 
+                                 aes(x=Year, y=Value, group = Area)) +
+  geom_line(aes(colour = Area), size = 1.5) +
+ scale_color_manual(values=colour_palette2) +
+  # need to add any axis titles back in, and specify font size when using theme_gla
+  # Use free_y_facets if you want the labels to be placed next to grid lines instead of above
+  scale_y_continuous(labels = label_number(suffix = "%")) +
+    ylim(2.7, 3.5) +
+  theme_gla(y_axis_title = TRUE, free_y_facets = TRUE) +  
+   theme(axis.title.y = element_text(size = 15))+
+  theme(axis.text.x = element_text(angle = 45))+
+  guides(colour = guide_legend(reverse = TRUE)) +
+  labs(title = "Prevalence of Low Birth Weight in London, 2006 - 2021",
+       subtitle = "% of all births with gestational age of 37+ weeks, with a birth weight < 2.5kg",
+       caption = paste0("Source: ONS, Chart: GLA demography"))+
+  labs(y = "Prevalence")
+London_LBW_rates_lines
+
+demog_save_chart(London_LBW_rates_lines, paste0(chart_dir, "London_LBW_rates_lines"))
+
+```
+
+
